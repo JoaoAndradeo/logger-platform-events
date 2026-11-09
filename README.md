@@ -10,6 +10,8 @@ Se a transação de negócio dá rollback, qualquer registro gravado nela també
 2. `Logger.flush()` publica a entrada como evento (`Log_Event__e`, com *Publish Immediately*).
 3. O `LogEventTrigger` recebe o evento e grava o `Log__c` em outra transação.
 
+Detalhes sobre rollback e limites: [docs/rollback.md](docs/rollback.md).
+
 ## Uso no Apex
 
 ```apex
