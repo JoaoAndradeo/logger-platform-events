@@ -1,12 +1,7 @@
 /**
- * Persiste Log_Event__e em Log__c. Executado pelo LogEventTrigger, em transação própria.
+ * Grava os Log_Event__e em Log__c. Chamado pelo LogEventTrigger.
  *
- * Decisões:
- *  - Nunca lança exceção: se lançar, a plataforma reenfileira o evento (até 9 vezes) e pode perder o lote.
- *    Falhas por registro são reportadas via System.debug e não derrubam o lote inteiro.
- *  - Gravação em SYSTEM_MODE: é persistência interna de uma entrada já autorizada na origem.
- *    A leitura pelo usuário é que passa por USER_MODE (ver LogViewerController).
- *  - Usa Database.insert e não o Logger: a guarda anti-loop impede que este handler gere novos eventos.
+ * Não lança exceção: se lançar, a plataforma reenfileira o evento. Erros são só registrados no debug log.
  */
 public with sharing class LogEventHandler {
 
@@ -22,8 +17,8 @@ public with sharing class LogEventHandler {
                 logs.add(toLog(event));
             }
 
-            List<Database.SaveResult> results = Database.insert(logs, false, AccessLevel.SYSTEM_MODE);
-            for (Database.SaveResult result : results) {
+            // Gravação do sistema: o usuário que gerou o log já foi validado na origem.
+            for (Database.SaveResult result : Database.insert(logs, false, AccessLevel.SYSTEM_MODE)) {
                 if (!result.isSuccess()) {
                     System.debug(LoggingLevel.ERROR, '[LogEventHandler] Falha ao gravar log: ' + result.getErrors());
                 }
@@ -46,11 +41,11 @@ public with sharing class LogEventHandler {
             Related_Record_Id__c = event.Related_Record_Id__c,
             User__c = toUserId(event.User_Id__c),
             Transaction_Id__c = event.Transaction_Id__c,
-            Logged_At__c = event.Logged_At__c != null ? event.Logged_At__c : Datetime.now()
+            Logged_At__c = (event.Logged_At__c != null) ? event.Logged_At__c : Datetime.now()
         );
     }
 
-    /** Converte o Id textual apenas se for de um User válido; caso contrário, retorna null. */
+    /** Devolve o Id apenas se for de um usuário. Caso contrário, null. */
     @TestVisible
     private static Id toUserId(String value) {
         if (String.isBlank(value)) {
@@ -58,7 +53,7 @@ public with sharing class LogEventHandler {
         }
         try {
             Id candidate = Id.valueOf(value);
-            return candidate.getSObjectType() == User.SObjectType ? candidate : null;
+            return (candidate.getSObjectType() == User.SObjectType) ? candidate : null;
         } catch (Exception e) {
             return null;
         }

@@ -1,6 +1,6 @@
 /**
- * Invocable Action para Flow gravar logs. Um único flush por invocação, para não gerar
- * um lote de publicações por registro do Flow.
+ * Ação "Registrar log" para Flow.
+ * Grava todas as linhas da invocação e faz um único flush no final.
  */
 public with sharing class LoggerInvocable {
 
@@ -8,7 +8,7 @@ public with sharing class LoggerInvocable {
         @InvocableVariable(label='Nível' required=true description='DEBUG, INFO, WARN ou ERROR. Valor inválido vira INFO.')
         public String level;
 
-        @InvocableVariable(label='Origem' required=true description='Nome do Flow ou elemento de origem.')
+        @InvocableVariable(label='Origem' required=true description='Nome do Flow ou do elemento que gerou o log.')
         public String source;
 
         @InvocableVariable(label='Mensagem' required=true)
@@ -18,7 +18,7 @@ public with sharing class LoggerInvocable {
         public Id recordId;
     }
 
-    @InvocableMethod(label='Registrar log' description='Grava uma entrada no Logger, persistida de forma assíncrona e independente da transação do Flow.' category='Logger')
+    @InvocableMethod(label='Registrar log' description='Grava uma linha de log. A gravação acontece em outra transação, então sobrevive a rollback.' category='Logger')
     public static void log(List<Request> requests) {
         if (requests == null || requests.isEmpty()) {
             return;

@@ -1,19 +1,18 @@
 /**
- * API de logging para Apex (e base para o Invocable de Flow).
+ * Logger para Apex e Flow.
  *
- * Desenho (detalhado em docs/logger-arquitetura.md):
- *  - write() acumula entradas em memória: nenhum DML e nenhum evento durante a lógica de negócio.
- *  - flush() publica as entradas como Log_Event__e em lotes de FLUSH_CHUNK_SIZE.
- *  - O evento é Publish Immediately, então não depende do commit da transação de origem.
- *  - LogEventTrigger -> LogEventHandler persistem os registros em Log__c, em outra transação.
+ * As entradas ficam em memória até o flush(). Isso publica os eventos
+ * (Log_Event__e) e o registro em Log__c é gravado em outra transação,
+ * então o log não some se a transação de negócio der rollback.
  *
- * Uso recomendado:
- *   try { ... } catch (Exception e) { Logger.error('MinhaClasse', e, recordId); }
+ * Uso típico:
+ *   Savepoint sp = Database.setSavepoint();
+ *   try { ... } catch (Exception e) { Database.rollback(sp); Logger.error('Classe.metodo', e, recordId); }
  *   finally { Logger.flush(); }
  */
 public with sharing class Logger {
 
-    /** Tamanho máximo de cada publicação (EventBus.publish). Ao atingir, o buffer é publicado automaticamente. */
+    // Limite de eventos por chamada de EventBus.publish.
     public static final Integer FLUSH_CHUNK_SIZE = 200;
     private static final Integer MAX_TEXT_LENGTH = 32000;
 
@@ -44,13 +43,13 @@ public with sharing class Logger {
         write(LogLevel.ERROR, 'Apex', source, e.getMessage(), recordId, e.getStackTraceString());
     }
 
-    /** Ponto de entrada genérico, usado também pelo Invocable de Flow (sourceType 'Flow'). */
+    /** Ponto de entrada geral. O Invocable de Flow também usa este método, com sourceType 'Flow'. */
     public static void write(LogLevel level, String sourceType, String source, String message, Id recordId, String stackTrace) {
-        LogLevel effectiveLevel = level == null ? LogLevel.INFO : level;
+        LogLevel effectiveLevel = (level == null) ? LogLevel.INFO : level;
 
-        // Guarda anti-loop: enquanto o handler persiste logs, nada novo é enfileirado.
+        // Enquanto o handler grava os logs, qualquer novo log é descartado para não gerar loop.
         if (dispatchGuard) {
-            System.debug(LoggingLevel.WARN, '[Logger] Entrada descartada durante a persistência: ' + source);
+            System.debug(LoggingLevel.WARN, '[Logger] Log descartado durante a gravação: ' + source);
             return;
         }
         if (effectiveLevel.ordinal() < LogSettings.getMinimumLevel().ordinal()) {
@@ -68,7 +67,7 @@ public with sharing class Logger {
         }
     }
 
-    /** Publica todas as entradas pendentes. Chamar sempre no finally do ponto de entrada. */
+    /** Publica os logs pendentes. Chame sempre no finally do ponto de entrada. */
     public static void flush() {
         if (buffer.isEmpty()) {
             return;
@@ -86,11 +85,11 @@ public with sharing class Logger {
             for (Integer i = start; i < finish; i++) {
                 chunk.add(events[i]);
             }
-            publishChunk(chunk);
+            publish(chunk);
         }
     }
 
-    /** Usado pelo LogEventHandler para ativar a guarda anti-loop durante a persistência. */
+    /** Usado pelo LogEventHandler enquanto grava os logs. */
     public static void setDispatchGuard(Boolean active) {
         dispatchGuard = active;
     }
@@ -100,11 +99,10 @@ public with sharing class Logger {
         return buffer.size();
     }
 
-    private static void publishChunk(List<Log_Event__e> chunk) {
-        List<Database.SaveResult> results = EventBus.publish(chunk);
-        for (Database.SaveResult result : results) {
+    private static void publish(List<Log_Event__e> chunk) {
+        for (Database.SaveResult result : EventBus.publish(chunk)) {
             if (!result.isSuccess()) {
-                System.debug(LoggingLevel.ERROR, '[Logger] Falha ao publicar evento de log: ' + result.getErrors());
+                System.debug(LoggingLevel.ERROR, '[Logger] Falha ao publicar evento: ' + result.getErrors());
             }
         }
     }
@@ -116,8 +114,8 @@ public with sharing class Logger {
             Source_Type__c = truncate(entry.sourceType, 10),
             Message__c = truncate(entry.message, MAX_TEXT_LENGTH),
             Stack_Trace__c = truncate(entry.stackTrace, MAX_TEXT_LENGTH),
-            Related_Record_Id__c = entry.recordId == null ? null : String.valueOf(entry.recordId),
-            User_Id__c = entry.userId == null ? null : String.valueOf(entry.userId),
+            Related_Record_Id__c = (entry.recordId == null) ? null : String.valueOf(entry.recordId),
+            User_Id__c = (entry.userId == null) ? null : String.valueOf(entry.userId),
             Transaction_Id__c = truncate(entry.transactionId, 64),
             Logged_At__c = entry.loggedAt
         );
@@ -130,7 +128,7 @@ public with sharing class Logger {
         return value.substring(0, maxLength);
     }
 
-    /** Entrada em memória. Captura usuário e transação no momento da origem, não na persistência. */
+    /** Dados capturados no momento do log (usuário, transação e hora), não no momento da gravação. */
     private class LoggerEntry {
         final LogLevel level;
         final String sourceType;

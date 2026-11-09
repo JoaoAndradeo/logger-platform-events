@@ -1,6 +1,6 @@
 /**
- * Leitura centralizada da configuração do Logger (Logger_Settings__mdt, registro 'Default').
- * Valores ausentes ou inválidos caem em padrões seguros, para que o logger nunca quebre a transação de negócio.
+ * Lê a configuração do Logger (Logger_Settings__mdt, registro Default).
+ * Se o registro não existir ou o valor for inválido, usa INFO.
  */
 public with sharing class LogSettings {
 
@@ -16,7 +16,7 @@ public with sharing class LogSettings {
             return minimumLevelOverride;
         }
         Logger_Settings__mdt settings = loadDefault();
-        return settings == null ? DEFAULT_MINIMUM_LEVEL : parseLevel(settings.Minimum_Level__c, DEFAULT_MINIMUM_LEVEL);
+        return (settings == null) ? DEFAULT_MINIMUM_LEVEL : parseLevel(settings.Minimum_Level__c, DEFAULT_MINIMUM_LEVEL);
     }
 
     public static LogLevel parseLevel(String value, LogLevel fallback) {
