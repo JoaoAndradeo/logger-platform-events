@@ -1,13 +1,9 @@
 /**
- * Consulta paginada (no servidor) dos logs para o LWC logViewer.
+ * Consulta paginada dos logs para o componente logViewer.
  *
- * Segurança:
- *  - Todas as consultas usam AccessLevel.USER_MODE (equivalente a WITH USER_MODE em SOQL dinâmico):
- *    CRUD, FLS e sharing do usuário logado são aplicados.
- *  - Filtros entram como bind variables. Nenhum valor vindo do LWC é concatenado na query.
- *
- * Paginação:
- *  - OFFSET do SOQL é limitado a 2000. Páginas além disso exigem filtro de período.
+ * - Consultas em USER_MODE: o usuário só vê o que a permission set Logger Viewer permite.
+ * - Filtros entram como bind variables. Texto digitado não vai concatenado na query.
+ * - O OFFSET do SOQL vai até 2000, então páginas além disso exigem um filtro de período.
  */
 public with sharing class LogViewerController {
 
@@ -44,14 +40,14 @@ public with sharing class LogViewerController {
 
     @AuraEnabled
     public static LogPage search(LogFilter filter, Integer pageSize, Integer pageNumber) {
-        Integer size = pageSize == null ? DEFAULT_PAGE_SIZE : Math.min(Math.max(pageSize, 1), MAX_PAGE_SIZE);
-        Integer page = Math.max(pageNumber == null ? 1 : pageNumber, 1);
+        Integer size = (pageSize == null) ? DEFAULT_PAGE_SIZE : Math.min(Math.max(pageSize, 1), MAX_PAGE_SIZE);
+        Integer page = Math.max((pageNumber == null) ? 1 : pageNumber, 1);
         Integer offset = (page - 1) * size;
         if (offset > MAX_OFFSET) {
             throw new AuraHandledException('Use filtros de período para acessar registros mais antigos.');
         }
 
-        LogFilter criteria = filter == null ? new LogFilter() : filter;
+        LogFilter criteria = (filter == null) ? new LogFilter() : filter;
         Map<String, Object> binds = new Map<String, Object>();
         String whereClause = buildWhereClause(criteria, binds);
 
@@ -107,7 +103,7 @@ public with sharing class LogViewerController {
             conditions.add('Logged_At__c >= :startAt');
         }
         if (criteria.endDate != null) {
-            // Limite exclusivo: inclui o dia inteiro de endDate.
+            // Limite exclusivo: o dia final inteiro entra no filtro.
             binds.put('endBefore', Datetime.newInstance(criteria.endDate.addDays(1), Time.newInstance(0, 0, 0, 0)));
             conditions.add('Logged_At__c < :endBefore');
         }
@@ -119,6 +115,7 @@ public with sharing class LogViewerController {
         return conditions.isEmpty() ? '' : ' WHERE ' + String.join(conditions, ' AND ');
     }
 
+    /** Escapa % e _ para que o texto digitado seja tratado como texto comum no LIKE. */
     private static String escapeLike(String value) {
         return value.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_');
     }
@@ -132,7 +129,7 @@ public with sharing class LogViewerController {
         row.sourceType = record.Source_Type__c;
         row.message = record.Message__c;
         row.loggedAt = record.Logged_At__c;
-        row.userName = record.User__r == null ? null : record.User__r.Name;
+        row.userName = (record.User__r == null) ? null : record.User__r.Name;
         row.relatedRecordId = record.Related_Record_Id__c;
         return row;
     }
