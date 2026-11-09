@@ -127,7 +127,7 @@ Teste: `LoggerTest.dispatchGuardPreventsLogsFromBeingQueuedWhileHandlerRuns`.
 1. **Rollback validado na org `DevEd`.** O roteiro abaixo foi executado: a conta gravada antes do rollback foi revertida e o `Log__c` sobreviveu. Isso é evidência em org real, mas ainda não cobre uma exceção não tratada que derruba a transação inteira (seção 3.1).
 2. **Limites numéricos** citados neste documento: confirmar na documentação da versão alvo.
 3. **Status do `Standard Volume`.** Uma fonte de blog (não oficial) de outubro de 2026 menciona planos de aposentadoria do Standard Volume Platform Event: [sfdcdevelopers.com](https://sfdcdevelopers.com/2026/10/07/standard-volume-platform-events-retirement-migration-plan/). Essa informação não foi confirmada na documentação oficial. Se o Standard Volume for aposentado, a opção D some: o único equivalente é o High Volume, que só suporta `Publish After Commit`. Nesse cenário, o projeto passa a depender da opção E.
-4. **Deploy real** concluído na org `DevEd`. Os metadados estão em `projeto-entrevista/force-app/main/default/`.
+4. **Deploy real** concluído na org `DevEd`. Os metadados estão em `force-app/main/default/`.
 
 **Roteiro de validação do rollback (executado na org `DevEd`: conta revertida, log persistido):**
 

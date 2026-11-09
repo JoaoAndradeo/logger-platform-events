@@ -81,7 +81,7 @@ Não há política de retenção neste projeto. Os logs ficam na org até serem 
 
 ## Deploy
 
-Os metadados ficam em `force-app/main/default/` (projeto SFDX da raiz). Para deployar **somente** o Logger, rode na pasta `projeto-entrevista`:
+Os metadados ficam em `force-app/main/default/` . Para deployar **somente** o Logger, rode na raiz deste repositório:
 
 ```bash
 sf project deploy start -o <alias> \
