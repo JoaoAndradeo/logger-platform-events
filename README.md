@@ -49,24 +49,3 @@ Use a ação **Registrar log**. Campos: nível (DEBUG, INFO, WARN ou ERROR), ori
 ## Consulta
 
 Atribua a permission set **Logger Viewer** ao usuário e adicione o componente `logViewer` a uma página. A App Page **Logs da Aplicação** já tem o componente.
-
-## Deploy
-
-Pré-requisitos: Salesforce CLI e uma Developer Edition.
-
-```bash
-sf org login web --alias DevEd --set-default --instance-url https://login.salesforce.com
-sf project deploy start --source-dir force-app --target-org DevEd --test-level RunLocalTests
-sf org assign permset --name Logger_Admin --target-org DevEd
-```
-
-## Testes
-
-- Apex: testes em `LoggerTest`, `LogEventHandlerTest`, `LoggerInvocableTest` e `LogViewerControllerTest`.
-- Jest (LWC `logViewer`): 7 testes.
-
-## Limitações
-
-- Se uma exceção não tratada derrubar a transação antes do `flush()`, o log se perde. O `try/catch` com `finally` no ponto de entrada evita isso.
-- Não há política de retenção: os logs ficam na org até serem apagados.
-- A publicação usa *Publish Immediately*. Esse tipo de evento depende do Standard Volume Platform Event, cuja aposentadoria ainda não foi confirmada pela documentação oficial.
