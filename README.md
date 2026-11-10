@@ -12,6 +12,16 @@ Se a transação de negócio dá rollback, qualquer registro gravado nela també
 
 Detalhes sobre rollback e limites: [docs/rollback.md](docs/rollback.md).
 
+## Por que importa
+
+Quando uma transação falha, todo `insert` feito nela também é desfeito, inclusive o de log. Sem um mecanismo à parte, o erro acontece e não fica nenhum registro dele.
+
+## Ganho
+
+- Registro de falhas que um `insert` direto perderia em rollback.
+- Um único ponto de log para Apex e Flow. O nível mínimo muda em `Logger_Settings__mdt`, sem deploy.
+- Investigação mais rápida: a tela filtra por nível e origem, sem abrir o debug log de cada execução.
+
 ## Uso no Apex
 
 ```apex
