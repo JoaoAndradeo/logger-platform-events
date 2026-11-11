@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Logs da aplicação gravados por Platform Events, com filtros e paginação.</description>
+    <formFactors>Large</formFactors>
+    <label>Logs da Aplicação</label>
+    <navType>Standard</navType>
+    <tabs>Logs_Aplicacao</tabs>
+    <uiType>Lightning</uiType>
+</CustomApplication>

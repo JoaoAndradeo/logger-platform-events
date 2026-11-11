@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <applicationVisibilities>
+        <application>Logs_Aplicacao_App</application>
+        <visible>true</visible>
+    </applicationVisibilities>
     <label>Logger Viewer</label>
     <description>Leitura dos logs (Log__c) e acesso ao LWC logViewer. Respeita a visibilidade concedida por esta permission set; não permite editar ou apagar.</description>
     <hasActivationRequired>false</hasActivationRequired>
@@ -43,4 +47,8 @@
         <apexClass>LogViewerController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <tabSettings>
+        <tab>Logs_Aplicacao</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
 </PermissionSet>
